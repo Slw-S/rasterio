@@ -1,0 +1,112 @@
+name: Wheels & sdist
+
+on:
+  workflow_dispatch:
+   
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROJ_VERSION: "9.5.1"
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  
+  build_wheels:
+    name: Build ${{ matrix.arch }} wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os: ubuntu-22.04-arm
+          arch: aarch64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+
+      - name: Activate MSVC
+        uses: ilammy/msvc-dev-cmd@v1.13.0
+        with:
+           arch: ${{ matrix.msvc_arch }}
+        if: ${{ matrix.msvc_arch }}
+
+      - name: Cache vcpkg
+        if: contains(matrix.os, 'windows')
+        uses: actions/cache@v4
+        id: vcpkgcache
+        with:
+          path: |
+            ${{ matrix.vcpkg_cache }}
+          # bump the last digit to avoid using previous build cache
+          key: ${{ matrix.os }}-${{ matrix.triplet }}-vcpkg-proj${{ env.PROJ_VERSION }}-cache0
+
+      - name: Install PROJ with vcpkg
+        if: contains(matrix.os, 'windows')
+        env:
+          VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }}
+        shell: bash
+        run: |
+          # Workaround for vcpkg downloading issue:
+          # https://github.com/microsoft/vcpkg/issues/41199#issuecomment-2378255699
+          export SystemDrive="$SYSTEMDRIVE"
+          export SystemRoot="$SYSTEMROOT"
+          export windir="$WINDIR"
+          cd "$VCPKG_INSTALLATION_ROOT"
+          git pull > nul
+          ./bootstrap-vcpkg.bat -disableMetrics
+          vcpkg install --feature-flags="versions,manifests" --x-manifest-root=${GITHUB_WORKSPACE}/ci --x-install-root=$VCPKG_INSTALLATION_ROOT/installed
+          mkdir -p ${GITHUB_WORKSPACE}/pyproj/proj_dir/share/proj
+          cp "$VCPKG_INSTALLATION_ROOT/installed/${{ matrix.triplet }}/share/proj/"* ${GITHUB_WORKSPACE}/pyproj/proj_dir/share/proj/
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.23.3
+        env:
+          CIBW_SKIP: "pp*-win* pp31*"
+          CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_ENVIRONMENT_LINUX:
+            PROJ_WHEEL=true
+            PROJ_NETWORK=ON
+            PROJ_VERSION=${{ env.PROJ_VERSION }}
+            PROJ_DIR=/project/rasterio/proj_dir
+          CIBW_ENVIRONMENT_MACOS:
+            PROJ_WHEEL=true
+            PROJ_NETWORK=ON
+            PROJ_VERSION=${{ env.PROJ_VERSION }}
+            PROJ_DIR=${GITHUB_WORKSPACE}/pyproj/proj_dir
+            CMAKE_OSX_ARCHITECTURES='${{ matrix.cmake_osx_architectures }}'
+            MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos_deployment_target }}
+            LDFLAGS="${LDFLAGS} -Wl,-rpath,${GITHUB_WORKSPACE}/pyproj/proj_dir/lib"
+          CIBW_ENVIRONMENT_WINDOWS:
+            PROJ_WHEEL=true
+            PROJ_NETWORK=ON
+            PROJ_VERSION=${{ env.PROJ_VERSION }}
+            PROJ_DIR=$VCPKG_INSTALLATION_ROOT/installed/${{ matrix.triplet }}
+          CIBW_BEFORE_BUILD_WINDOWS: "python -m pip install delvewheel"
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair --add-path C:/Windows/System32 --add-path C:/vcpkg/installed/${{ matrix.triplet }}/bin -w {dest_dir} {wheel}"
+          CIBW_BEFORE_ALL_LINUX: bash ./ci/prebuild.sh
+          CIBW_BEFORE_ALL_MACOS: bash ./ci/prebuild.sh
+          
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.arch }}
+          path: ./wheelhouse/*.whl
+          retention-days: 5
+
+      - name: Generate file list
+        run: ls -R /usr/local > filelist.txt
+
+      - name: Upload file list
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-filelist
+          path: filelist.txt
+
+
+  
