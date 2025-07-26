@@ -22,8 +22,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - os: ubuntu-22.04-arm
-          arch: aarch64
+        - os: macos-14
+          arch: arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -75,13 +75,8 @@ jobs:
             PROJ_VERSION=${{ env.PROJ_VERSION }}
             PACKAGE_DATA=1
           CIBW_ENVIRONMENT_MACOS:
-            PROJ_WHEEL=true
-            PROJ_NETWORK=ON
             PROJ_VERSION=${{ env.PROJ_VERSION }}
-            PROJ_DIR=${GITHUB_WORKSPACE}/pyproj/proj_dir
-            CMAKE_OSX_ARCHITECTURES='${{ matrix.cmake_osx_architectures }}'
-            MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos_deployment_target }}
-            LDFLAGS="${LDFLAGS} -Wl,-rpath,${GITHUB_WORKSPACE}/pyproj/proj_dir/lib"
+            PACKAGE_DATA=1
           CIBW_ENVIRONMENT_WINDOWS:
             VCPKG_INSTALL="C:/vcpkg/installed/arm64-windows"
             GDAL_INCLUDE_PATH="$VCPKG_INSTALL/include"
