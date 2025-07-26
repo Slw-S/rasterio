@@ -67,7 +67,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23.3
         env:
-          CIBW_SKIP: "*pp* cp39* cp310*"
+          CIBW_SKIP: "*pp* cp39* cp310* *musllinux*"
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_ENVIRONMENT_LINUX:
             PROJ_WHEEL=true
@@ -103,16 +103,7 @@ jobs:
         with:
           name: wheels-${{ matrix.os }}-${{ matrix.arch }}
           path: ./wheelhouse/*.whl
-          retention-days: 5
 
-      - name: Generate file list
-        run: ls -R /usr/local > filelist.txt
-
-      - name: Upload file list
-        uses: actions/upload-artifact@v4
-        with:
-          name: local-filelist
-          path: filelist.txt
 
 
   
