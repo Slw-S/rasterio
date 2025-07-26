@@ -96,7 +96,12 @@ jobs:
             brew install pkg-config &&
             brew deps --tree --installed &&
             bash ./ci/prebuild.sh
-          
+          #CIBW_TEST_REQUIRES:
+          #CIBW_TEST_COMMAND: >
+          #  pyproj -v &&
+          #  python -c "import pyproj; pyproj.Proj(init='epsg:4269')"  &&
+          #  cp -r {package}/test . &&
+          #  python -m pytest test -v -s
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
