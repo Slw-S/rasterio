@@ -67,7 +67,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23.3
         env:
-          CIBW_SKIP: "*pp* cp39* cp310*" "
+          CIBW_SKIP: "*pp* cp39* cp310*"
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_ENVIRONMENT_LINUX:
             PROJ_WHEEL=true
@@ -91,7 +91,11 @@ jobs:
           CIBW_BEFORE_BUILD_WINDOWS: "python -m pip install delvewheel"
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair --add-path C:/Windows/System32 --add-path C:/vcpkg/installed/${{ matrix.triplet }}/bin -w {dest_dir} {wheel}"
           CIBW_BEFORE_ALL_LINUX: bash ./ci/prebuild.sh
-          CIBW_BEFORE_ALL_MACOS: bash ./ci/prebuild.sh
+          CIBW_BEFORE_ALL_MACOS: >
+            brew remove -f --ignore-dependencies liblerc webp zstd libtiff libxcb libxdcmp curl php lcms2 xmlto ghostscript lz4 openjpeg xz giflib rtmpdump brotli snappy &&
+            brew install pkg-config &&
+            brew deps --tree --installed &&
+            bash ./ci/prebuild.sh
           
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
