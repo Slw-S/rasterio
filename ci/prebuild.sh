@@ -52,6 +52,9 @@ export CPPFLAGS_BACKUP="$CPPFLAGS"
 export LIBRARY_PATH_BACKUP="$LIBRARY_PATH"
 export PKG_CONFIG_PATH_BACKUP="$PKG_CONFIG_PATH"
 
+export GDAL_CONFIG=/usr/local/bin/gdal-config
+export PROJ_DATA=/usr/local/share/proj
+
 function update_env_for_build_prefix {
   # Promote BUILD_PREFIX on search path to any newly built libs
   export CPPFLAGS="-I$BUILD_PREFIX/include $CPPFLAGS_BACKUP"
@@ -319,14 +322,14 @@ function build_proj {
     suppress build_curl_ssl
     (cd proj-${PROJ_VERSION:0:5} \
         && cmake . \
-        -DCMAKE_INSTALL_PREFIX=$PROJ_DIR \
+        -DCMAKE_INSTALL_PREFIX:PATH=$BUILD_PREFIX \
+        -DCMAKE_PREFIX_PATH=${BUILD_PREFIX} \
+        -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
         -DBUILD_SHARED_LIBS=ON \
         -DCMAKE_BUILD_TYPE=Release \
         -DENABLE_IPO=ON \
         -DBUILD_APPS:BOOL=OFF \
         -DBUILD_TESTING:BOOL=OFF \
-        -DCMAKE_PREFIX_PATH=$BUILD_PREFIX \
-        -DCMAKE_INSTALL_LIBDIR=lib \
         && cmake --build . -j$(nproc) \
         && cmake --install .)
     touch proj-stamp
@@ -552,7 +555,6 @@ function build_gdal {
         -DCMAKE_INCLUDE_PATH=$BUILD_PREFIX/include \
         -DCMAKE_LIBRARY_PATH=$BUILD_PREFIX/lib \
         -DCMAKE_PROGRAM_PATH=$BUILD_PREFIX/bin \
-        -DPROJ_DIR=$PROJ_DIR \
         -DCMAKE_BUILD_TYPE=Release \
         -DGDAL_BUILD_OPTIONAL_DRIVERS=ON \
         -DOGR_BUILD_OPTIONAL_DRIVERS=OFF \
