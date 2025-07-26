@@ -72,7 +72,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23.3
         env:
-          CIBW_SKIP: "*pp* cp39* cp310* *cp311* *musllinux*"
+          CIBW_SKIP: "*pp* cp39* cp310* *cp311* *cp312* *musllinux*"
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_ENVIRONMENT_LINUX:
             PROJ_WHEEL=true
@@ -94,23 +94,15 @@ jobs:
             GDAL_VERSION="3.10.2"
           CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: delvewheel repair --add-path C:/vcpkg/installed/arm64-windows/bin -w {dest_dir} {wheel}
-          CIBW_BEFORE_ALL_LINUX: >
-            add-apt-repository -y ppa:ubuntugis/ubuntugis-unstable &&
-            apt-get update &&
-            apt-get install -y -q bison libaec-dev libjpeg-dev libgif-dev liblzma-dev libzstd-dev libgeos-dev git libcurl4-gnutls-dev libproj-dev libxml2-dev libxerces-c-dev libnetcdf-dev netcdf-bin &&
-            apt-get install -y -q libpoppler-dev libpoppler-private-dev gpsbabel libhdf4-alt-dev libhdf5-serial-dev libpodofo-dev poppler-utils libfreexl-dev unixodbc-dev libwebp-dev liblcms2-2 libcrypto++-dev libkml-dev &&
-            apt-get install -y -q libmysqlclient-dev libarmadillo-dev wget libfyba-dev libjsoncpp-dev libexpat1-dev libsqlite3-dev sqlite3-pcre libpcre3-dev libspatialite-dev libsfcgal-dev fossil libcairo2-dev libjson-c-dev libdeflate-dev liblz4-dev libblosc-dev libarchive-dev &&
-            apt-get install -y -q libqhull-dev libcfitsio-dev libopenjp2-7-dev libheif-dev python3-dev libpython3-dev libpython3.10-dev python3.10-dev python3-numpy python3-lxml python3-pyflakes python3-setuptools python3-pip python3-venv python3-pytest swig doxygen texlive-latex-base make cppcheck ccache g++ &&
-            apt-get install -y -q libpq-dev libpqtypes-dev postgresql-14 postgresql-14-postgis-3 postgresql-client-14 postgresql-14-postgis-3-scripts &&
-            bash ./ci/prebuild.sh
+          CIBW_BEFORE_ALL_LINUX: bash ./ci/prebuild.sh
           CIBW_BEFORE_ALL_MACOS: >
             brew remove -f --ignore-dependencies liblerc webp zstd libtiff libxcb libxdcmp curl php lcms2 xmlto ghostscript lz4 openjpeg xz giflib rtmpdump brotli snappy &&
             brew install pkg-config &&
             brew deps --tree --installed &&
             bash ./ci/prebuild.sh
-          # CIBW_TEST_REQUIRES: numpy attrs pytest click mock boto3 packaging hypothesis fsspec aiohttp requests
-          #CIBW_TEST_COMMAND: >
-          # PROJ_NETWORK=ON python -m pytest -vv tests -m "not gdalbin" -k "not test_ensure_env_decorator_sets_gdal_data_prefix and not test_tiled_dataset_blocksize_guard and not test_untiled_dataset_blocksize and not test_positional_calculation_byindex and not test_transform_geom_polygon and not test_reproject_error_propagation and not test_issue2353 and not test_info_azure_unsigned and not test_datasetreader_ctor_url and not test_outer_boundless_pixel_fidelity"
+          CIBW_TEST_REQUIRES: numpy attrs pytest click mock boto3 packaging hypothesis fsspec aiohttp requests
+          CIBW_TEST_COMMAND: >
+           PROJ_NETWORK=ON python -m pytest -vv tests -m "not gdalbin" -k "not test_ensure_env_decorator_sets_gdal_data_prefix and not test_tiled_dataset_blocksize_guard and not test_untiled_dataset_blocksize and not test_positional_calculation_byindex and not test_transform_geom_polygon and not test_reproject_error_propagation and not test_issue2353 and not test_info_azure_unsigned and not test_datasetreader_ctor_url and not test_outer_boundless_pixel_fidelity"
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
