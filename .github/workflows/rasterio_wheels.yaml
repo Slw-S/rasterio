@@ -67,13 +67,14 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23.3
         env:
-          CIBW_SKIP: "pp*-win* pp31*"
+          CIBW_SKIP: "*pp* cp39* cp310*" "
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_ENVIRONMENT_LINUX:
             PROJ_WHEEL=true
             PROJ_NETWORK=ON
             PROJ_VERSION=${{ env.PROJ_VERSION }}
             PROJ_DIR=/project/rasterio/proj_dir
+            PACKAGE_DATA=1
           CIBW_ENVIRONMENT_MACOS:
             PROJ_WHEEL=true
             PROJ_NETWORK=ON
